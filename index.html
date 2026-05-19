@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Warehouse Roll Labels</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;font-family:'Courier New',monospace;color:#f1f5f9;min-height:100vh}
+header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 20px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:15px;font-weight:700}
+.header-sub{font-size:9px;letter-spacing:3px;color:#64748b}
+.badge{background:#16a34a22;color:#16a34a;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700}
+.status{font-size:10px;margin-right:4px}
+.tabs{display:flex;background:#1e293b;border-bottom:1px solid #334155}
+.tab{flex:1;padding:12px;background:none;border:none;border-bottom:3px solid transparent;color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;font-family:'Courier New',monospace}
+.tab.active{color:#3b82f6;border-bottom-color:#3b82f6}
+.content{padding:20px 16px;max-width:500px;margin:0 auto;padding-bottom:80px}
+label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bottom:6px;margin-top:12px}
+input{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px 14px;color:#f1f5f9;font-size:16px;font-family:'Courier New',monospace;outline:none}
+input.err{border-color:#ef4444}
+input:focus{border-color:#3b82f6}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}
+.cat-btn{padding:10px 8px;border-radius:8px;border:2px solid #334155;background:#1e293b;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:10px;font-family:'Courier New',monospace}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-blue{background:#3b82f6}.btn-green{background:#16a34a}.btn-red{background:#dc2626}
+.roll-card{background:#1e293b;border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:4px solid #334155;display:flex;justify-content:space-between;align-items:flex-start}
+.roll-mp{font-size:16px;font-weight:800;color:#f1f5f9}
+.roll-meta{font-size:12px;color:#94a3b8;margin-top:2px}
+.roll-badge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.del-btn{background:none;border:none;color:#475569;cursor:pointer;font-size:18px;padding:0 4px;flex-shrink:0}
+.empty{text-align:center;color:#475569;padding:40px 0;font-size:13px}
+.errmsg{color:#ef4444;font-size:11px;margin:4px 0 8px}
+.info-box{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:16px;font-size:11px;color:#94a3b8;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="header-sub">WAREHOUSE</div>
+    <div class="header-title">Roll Label System</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span id="status" class="status"></span>
+    <span class="badge" id="roll-count">0 rolls</span>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('entry')">ADD</button>
+  <button class="tab" onclick="switchTab('list')" id="list-tab">LIST (0)</button>
+</div>
+<div class="content" id="view-entry">
+  <label class="fl">MP#</label>
+  <input id="f-mp" placeholder="e.g. PPM2-54MR" oninput="clearErr('mp')" onkeydown="if(event.key==='Enter')document.getElementById('f-batch').focus()"/>
+  <div class="errmsg" id="e-mp" style="display:none">Required</div>
+  <label class="fl">BATCH#</label>
+  <input id="f-batch" placeholder="e.g. 215103127" oninput="clearErr('batch')" onkeydown="if(event.key==='Enter')document.getElementById('f-length').focus()"/>
+  <div class="errmsg" id="e-batch" style="display:none">Required</div>
+  <label class="fl">LENGTH</label>
+  <input id="f-length" placeholder="e.g. 1,968'" oninput="clearErr('length')" onkeydown="if(event.key==='Enter')addRoll()"/>
+  <div class="errmsg" id="e-length" style="display:none">Required</div>
+  <label class="fl">CATEGORY</label>
+  <div class="cat-grid" id="cat-grid"></div>
+  <div class="errmsg" id="e-cat" style="display:none">Select a category</div>
+  <button class="btn btn-blue" onclick="addRoll()" id="add-btn" style="margin-top:16px">+ ADD ROLL</button>
+</div>
+<div class="content" id="view-list" style="display:none">
+  <div class="info-box">Data saved to Google Sheets. Safe to close the app anytime.</div>
+  <div id="roll-list"><div class="empty">Loading...</div></div>
+  <div id="list-actions" style="display:none;margin-top:8px">
+    <button class="btn btn-green" onclick="exportExcel()">DOWNLOAD EXCEL</button>
+    <button class="btn btn-red" onclick="clearAll()">CLEAR ALL ROLLS</button>
+  </div>
+</div>
+<script>
+var API="https://script.google.com/macros/s/AKfycbwaDdSwpiX77mU8SQ04nlpUXDfOAhCNKfqI56He0vbZMUl6XLoQ5owcrHtW3enZXhMMmA/exec";
+var CATS=[
+  {label:"Frequent Use",color:"#16a34a"},
+  {label:"Infrequent Use",color:"#eab308"},
+  {label:"Quarantine",color:"#ea580c"},
+  {label:"UK Material",color:"#7c3aed"},
+  {label:"China Material",color:"#0ea5e9"},
+  {label:"Trials",color:"#dc2626"}
+];
+var TODAY=new Date().toISOString().split("T")[0];
+var rolls=[];
+var selectedCat="";
+var busy=false;
+
+function setStatus(msg,color){
+  var el=document.getElementById("status");
+  el.textContent=msg;
+  el.style.color=color||"#94a3b8";
+}
+
+async function fetchRolls(){
+  try{
+    var res=await fetch(API+"?t="+Date.now());
+    var json=await res.json();
+    return json.data||[];
+  }catch(e){return[];}
+}
+
+async function postData(payload){
+  await fetch(API,{method:"POST",body:JSON.stringify(payload)});
+}
+
+async function syncRolls(){
+  setStatus("SYNCING...","#f59e0b");
+  rolls=await fetchRolls();
+  renderList();
+  updateCount();
+  setStatus("SYNCED","#16a34a");
+  setTimeout(function(){setStatus("","");},2000);
+}
+
+function buildCatGrid(){
+  var grid=document.getElementById("cat-grid");
+  CATS.forEach(function(cat){
+    var btn=document.createElement("button");
+    btn.className="cat-btn";
+    btn.id="c_"+cat.label.replace(/\s/g,"_");
+    btn.innerHTML='<span class="cat-dot" style="background:'+cat.color+'"></span>'+cat.label.toUpperCase();
+    btn.onclick=function(){selectCat(cat.label);};
+    grid.appendChild(btn);
+  });
+}
+
+function selectCat(label){
+  selectedCat=label;
+  document.getElementById("e-cat").style.display="none";
+  CATS.forEach(function(cat){
+    var b=document.getElementById("c_"+cat.label.replace(/\s/g,"_"));
+    if(!b)return;
+    var on=cat.label===label;
+    b.style.borderColor=on?cat.color:"#334155";
+    b.style.background=on?cat.color+"22":"#1e293b";
+    b.style.color=on?cat.color:"#64748b";
+  });
+}
+
+function clearErr(f){
+  document.getElementById("f-"+f).classList.remove("err");
+  document.getElementById("e-"+f).style.display="none";
+}
+
+async function addRoll(){
+  var mp=document.getElementById("f-mp").value.trim();
+  var batch=document.getElementById("f-batch").value.trim();
+  var length=document.getElementById("f-length").value.trim();
+  var ok=true;
+  if(!mp){document.getElementById("f-mp").classList.add("err");document.getElementById("e-mp").style.display="block";ok=false;}
+  if(!batch){document.getElementById("f-batch").classList.add("err");document.getElementById("e-batch").style.display="block";ok=false;}
+  if(!length){document.getElementById("f-length").classList.add("err");document.getElementById("e-length").style.display="block";ok=false;}
+  if(!selectedCat){document.getElementById("e-cat").style.display="block";ok=false;}
+  if(!ok||busy)return;
+  busy=true;
+  var btn=document.getElementById("add-btn");
+  btn.disabled=true;btn.textContent="SAVING...";
+  setStatus("SAVING...","#f59e0b");
+  try{
+    await postData({action:"add",id:Date.now().toString(),mp:mp,batch:batch,length:length,category:selectedCat,date:TODAY});
+    document.getElementById("f-mp").value="";
+    document.getElementById("f-batch").value="";
+    document.getElementById("f-length").value="";
+    selectedCat="";
+    CATS.forEach(function(cat){
+      var b=document.getElementById("c_"+cat.label.replace(/\s/g,"_"));
+      if(b){b.style.borderColor="#334155";b.style.background="#1e293b";b.style.color="#64748b";}
+    });
+    setStatus("SAVED","#16a34a");
+    setTimeout(function(){setStatus("","");},2000);
+    document.getElementById("f-mp").focus();
+    await syncRolls();
+  }catch(e){setStatus("ERROR - check connection","#dc2626");}
+  btn.disabled=false;btn.textContent="+ ADD ROLL";
+  busy=false;
+}
+
+async function deleteRoll(id){
+  if(!confirm("Delete this roll?"))return;
+  setStatus("DELETING...","#f59e0b");
+  await postData({action:"delete",id:id});
+  await syncRolls();
+}
+
+async function clearAll(){
+  if(!confirm("Delete ALL rolls? This cannot be undone."))return;
+  setStatus("CLEARING...","#f59e0b");
+  for(var i=0;i<rolls.length;i++){
+    await postData({action:"delete",id:rolls[i].ID});
+  }
+  await syncRolls();
+}
+
+function renderList(){
+  var container=document.getElementById("roll-list");
+  var actions=document.getElementById("list-actions");
+  if(!rolls.length){
+    container.innerHTML='<div class="empty">No rolls registered yet.</div>';
+    actions.style.display="none";
+    return;
+  }
+  actions.style.display="block";
+  container.innerHTML=rolls.map(function(r){
+    var cat=CATS.find(function(c){return c.label===r.CATEGORY;})||CATS[0];
+    return '<div class="roll-card" style="border-left-color:'+cat.color+'"><div><div class="roll-mp">'+r.MP+'</div><div class="roll-meta">B#'+r.BATCH+' &middot; '+r.LENGTH+' &middot; '+r.DATE+'</div><span class="roll-badge" style="background:'+cat.color+'22;color:'+cat.color+'">'+r.CATEGORY.toUpperCase()+'</span></div><button class="del-btn" onclick="deleteRoll(\''+r.ID+'\')">&#x2715;</button></div>';
+  }).join("");
+}
+
+function exportExcel(){
+  if(!rolls.length)return;
+  var wb=XLSX.utils.book_new();
+  var data=rolls.map(function(r){
+    var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent("MP:"+r.MP+"|BATCH:"+r.BATCH+"|LEN:"+r.LENGTH+"|CAT:"+r.CATEGORY+"|DATE:"+r.DATE);
+    return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"DATE":r.DATE,"QR_URL":qr};
+  });
+  var ws=XLSX.utils.json_to_sheet(data);
+  ws["!cols"]=[{wch:20},{wch:20},{wch:14},{wch:20},{wch:14},{wch:80}];
+  XLSX.utils.book_append_sheet(wb,ws,"Inventory");
+  XLSX.writeFile(wb,"warehouse_"+TODAY+".xlsx");
+}
+
+function updateCount(){
+  document.getElementById("roll-count").textContent=rolls.length+" rolls";
+  document.getElementById("list-tab").textContent="LIST ("+rolls.length+")";
+}
+
+function switchTab(tab){
+  ["entry","list"].forEach(function(v){
+    document.getElementById("view-"+v).style.display=v===tab?"block":"none";
+  });
+  document.querySelectorAll(".tab").forEach(function(btn,i){
+    btn.classList.toggle("active",i===["entry","list"].indexOf(tab));
+  });
+  if(tab==="list")syncRolls();
+}
+
+buildCatGrid();
+syncRolls();
+setInterval(syncRolls,20000);
+</script>
+</body>
+</html>
