@@ -76,7 +76,7 @@ input:focus{border-color:#3b82f6}
   </div>
 </div>
 <script>
-var API="https://script.google.com/macros/s/AKfycbyJci_umvWz5BDCPsHnsJ9nEAPfSzjUQb7PjSk3hP1wVxbeolJPDuj8DPfHkW4ltlq3ng/exec";
+var API="https://script.google.com/macros/s/AKfycbwWijuZbyiH21v_lWn43QlszHQO_pAuHhQCVIhnzXqQLJVUFxVtmf5zE316BjzXTN_q_A/exec";
 var CATS=[
   {label:"Frequent Use",color:"#16a34a"},
   {label:"Infrequent Use",color:"#eab308"},
@@ -105,7 +105,7 @@ async function fetchRolls(){
 }
 
 async function postData(payload){
-  await fetch(API,{method:"POST",body:JSON.stringify(payload)});
+  var params=new URLSearchParams(payload);await fetch(API+"?"+params.toString());
 }
 
 async function syncRolls(){
