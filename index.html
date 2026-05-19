@@ -76,7 +76,7 @@ input:focus{border-color:#3b82f6}
   </div>
 </div>
 <script>
-var API="https://script.google.com/macros/s/AKfycbyqf-uSOaRLtLmtc0PeQowkdDqKP8hWL0f1tARx-GWFd6jLbKkOXmyY1QVekCspmt14Pw/exec";
+var API="https://script.google.com/macros/s/AKfycbzoIsgK8bWXhdR_jACfYuz3xAvl3UuRmAV5uL3LWvkM3WVUKDBAV034IVjnrYNog2Dzeg/exec";
 var CATS=[
   {label:"Frequent Use",color:"#16a34a"},
   {label:"Infrequent Use",color:"#eab308"},
@@ -215,7 +215,7 @@ function exportExcel(){
   if(!rolls.length)return;
   var wb=XLSX.utils.book_new();
   var data=rolls.map(function(r){
-    var scanUrl=API+"?scan=1&id="+r.ID+"&mp="+encodeURIComponent(r.MP)+"&batch="+encodeURIComponent(r.BATCH)+"&length="+encodeURIComponent(r.LENGTH)+"&category="+encodeURIComponent(r.CATEGORY)+"&date="+encodeURIComponent(r.DATE);var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(scanUrl);
+    var scanUrl=API+"?scan=1&id="+r.ID;var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(scanUrl);
     return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"DATE":r.DATE,"QR_URL":qr};
   });
   var ws=XLSX.utils.json_to_sheet(data);
