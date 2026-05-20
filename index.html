@@ -65,6 +65,9 @@ input:focus{border-color:#3b82f6}
   <label class="fl">CATEGORY</label>
   <div class="cat-grid" id="cat-grid"></div>
   <div class="errmsg" id="e-cat" style="display:none">Select a category</div>
+  <label class="fl">LOCATION</label>
+  <div class="cat-grid" id="loc-grid"></div>
+  <div class="errmsg" id="e-loc" style="display:none">Select a location</div>
   <button class="btn btn-blue" onclick="addRoll()" id="add-btn" style="margin-top:16px">+ ADD ROLL</button>
 </div>
 <div class="content" id="view-list" style="display:none">
@@ -76,7 +79,7 @@ input:focus{border-color:#3b82f6}
   </div>
 </div>
 <script>
-var API="https://script.google.com/macros/s/AKfycby5S1RdfqvpFXqR3lMk_H1ZJZ34LlPNiC7Dcu1t83l_zBMuSpNzTy-k831QXtUKw8j2gA/exec";
+var API="https://script.google.com/macros/s/AKfycbx-tZbVMIXn-w1-EAccRBNYPQYegV7HoMXP4UGvTcvoBqbdX-Shv2bLraE9sUNldf-g5g/exec";
 var CATS=[
   {label:"Frequent Use",color:"#16a34a"},
   {label:"Infrequent Use",color:"#eab308"},
@@ -85,9 +88,11 @@ var CATS=[
   {label:"China Material",color:"#0ea5e9"},
   {label:"Trials",color:"#dc2626"}
 ];
+var LOCS=["Aisle 1","Aisle 2","Aisle 3","Aisle 4","Aisle 5","Aisle 6","Aisle 7"];
 var TODAY=new Date().toISOString().split("T")[0];
 var rolls=[];
 var selectedCat="";
+var selectedLoc="";
 var busy=false;
 
 function setStatus(msg,color){
@@ -105,7 +110,8 @@ async function fetchRolls(){
 }
 
 async function postData(payload){
-  var params=new URLSearchParams(payload);await fetch(API+"?"+params.toString());
+  var params=new URLSearchParams(payload);
+  await fetch(API+"?"+params.toString());
 }
 
 async function syncRolls(){
@@ -129,6 +135,18 @@ function buildCatGrid(){
   });
 }
 
+function buildLocGrid(){
+  var grid=document.getElementById("loc-grid");
+  LOCS.forEach(function(loc){
+    var btn=document.createElement("button");
+    btn.className="cat-btn";
+    btn.id="l_"+loc.replace(/\s/g,"_");
+    btn.innerHTML=loc;
+    btn.onclick=function(){selectLoc(loc);};
+    grid.appendChild(btn);
+  });
+}
+
 function selectCat(label){
   selectedCat=label;
   document.getElementById("e-cat").style.display="none";
@@ -139,6 +157,19 @@ function selectCat(label){
     b.style.borderColor=on?cat.color:"#334155";
     b.style.background=on?cat.color+"22":"#1e293b";
     b.style.color=on?cat.color:"#64748b";
+  });
+}
+
+function selectLoc(loc){
+  selectedLoc=loc;
+  document.getElementById("e-loc").style.display="none";
+  LOCS.forEach(function(l){
+    var b=document.getElementById("l_"+l.replace(/\s/g,"_"));
+    if(!b)return;
+    var on=l===loc;
+    b.style.borderColor=on?"#3b82f6":"#334155";
+    b.style.background=on?"#3b82f622":"#1e293b";
+    b.style.color=on?"#3b82f6":"#64748b";
   });
 }
 
@@ -156,19 +187,25 @@ async function addRoll(){
   if(!batch){document.getElementById("f-batch").classList.add("err");document.getElementById("e-batch").style.display="block";ok=false;}
   if(!length){document.getElementById("f-length").classList.add("err");document.getElementById("e-length").style.display="block";ok=false;}
   if(!selectedCat){document.getElementById("e-cat").style.display="block";ok=false;}
+  if(!selectedLoc){document.getElementById("e-loc").style.display="block";ok=false;}
   if(!ok||busy)return;
   busy=true;
   var btn=document.getElementById("add-btn");
   btn.disabled=true;btn.textContent="SAVING...";
   setStatus("SAVING...","#f59e0b");
   try{
-    await postData({action:"add",id:Date.now().toString(),mp:mp,batch:batch,length:length,category:selectedCat,date:TODAY});
+    await postData({action:"add",id:Date.now().toString(),mp:mp,batch:batch,length:length,category:selectedCat,date:TODAY,location:selectedLoc});
     document.getElementById("f-mp").value="";
     document.getElementById("f-batch").value="";
     document.getElementById("f-length").value="";
     selectedCat="";
+    selectedLoc="";
     CATS.forEach(function(cat){
       var b=document.getElementById("c_"+cat.label.replace(/\s/g,"_"));
+      if(b){b.style.borderColor="#334155";b.style.background="#1e293b";b.style.color="#64748b";}
+    });
+    LOCS.forEach(function(l){
+      var b=document.getElementById("l_"+l.replace(/\s/g,"_"));
       if(b){b.style.borderColor="#334155";b.style.background="#1e293b";b.style.color="#64748b";}
     });
     setStatus("SAVED","#16a34a");
@@ -207,7 +244,8 @@ function renderList(){
   actions.style.display="block";
   container.innerHTML=rolls.map(function(r){
     var cat=CATS.find(function(c){return c.label===r.CATEGORY;})||CATS[0];
-    return '<div class="roll-card" style="border-left-color:'+cat.color+'"><div><div class="roll-mp">'+r.MP+'</div><div class="roll-meta">B#'+r.BATCH+' &middot; '+r.LENGTH+' &middot; '+r.DATE+'</div><span class="roll-badge" style="background:'+cat.color+'22;color:'+cat.color+'">'+r.CATEGORY.toUpperCase()+'</span></div><button class="del-btn" onclick="deleteRoll(\''+r.ID+'\')">&#x2715;</button></div>';
+    var loc=r.LOCATION?" &middot; "+r.LOCATION:"";
+    return '<div class="roll-card" style="border-left-color:'+cat.color+'"><div><div class="roll-mp">'+r.MP+'</div><div class="roll-meta">B#'+r.BATCH+' &middot; '+r.LENGTH+' &middot; '+r.DATE+loc+'</div><span class="roll-badge" style="background:'+cat.color+'22;color:'+cat.color+'">'+r.CATEGORY.toUpperCase()+'</span></div><button class="del-btn" onclick="deleteRoll(\''+r.ID+'\')">&#x2715;</button></div>';
   }).join("");
 }
 
@@ -215,11 +253,12 @@ function exportExcel(){
   if(!rolls.length)return;
   var wb=XLSX.utils.book_new();
   var data=rolls.map(function(r){
-    var scanUrl=API+"?scan=1&id="+r.ID;var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(scanUrl);
-    return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"DATE":r.DATE,"QR_URL":qr};
+    var scanUrl=API+"?scan=1&id="+r.ID;
+    var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(scanUrl);
+    return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"LOCATION":r.LOCATION||"","DATE":r.DATE,"QR_URL":qr};
   });
   var ws=XLSX.utils.json_to_sheet(data);
-  ws["!cols"]=[{wch:20},{wch:20},{wch:14},{wch:20},{wch:14},{wch:80}];
+  ws["!cols"]=[{wch:20},{wch:20},{wch:14},{wch:20},{wch:14},{wch:14},{wch:80}];
   XLSX.utils.book_append_sheet(wb,ws,"Inventory");
   XLSX.writeFile(wb,"warehouse_"+TODAY+".xlsx");
 }
@@ -240,6 +279,7 @@ function switchTab(tab){
 }
 
 buildCatGrid();
+buildLocGrid();
 syncRolls();
 setInterval(syncRolls,20000);
 </script>
