@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Warehouse Scanner</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;font-family:'Courier New',monospace;color:#f1f5f9;min-height:100vh}
@@ -14,6 +15,8 @@ header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 20px;disp
 .btn{width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:10px;font-family:'Courier New',monospace}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
 .btn-blue{background:#3b82f6}.btn-green{background:#16a34a}.btn-gray{background:#334155}
+#reader{width:100%;border-radius:12px;overflow:hidden;margin-bottom:16px}
+#reader img{display:none}
 .card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px}
 .card-title{font-size:10px;letter-spacing:2px;color:#64748b;margin-bottom:12px}
 .roll-mp{font-size:32px;font-weight:900;color:#f1f5f9;margin-bottom:8px}
@@ -28,7 +31,6 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
 .status.success{background:#16a34a22;color:#16a34a}
 .status.error{background:#dc262622;color:#dc2626}
 .errmsg{color:#ef4444;font-size:11px;margin:4px 0 8px}
-.hint{text-align:center;color:#475569;font-size:12px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -41,15 +43,12 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
 </header>
 
 <div class="content">
-
-  <!-- SCAN VIEW -->
   <div id="view-scan">
-    <input type="file" id="qr-input" accept="image/*" capture="environment" style="display:none" onchange="handleImage(this)"/>
-    <button class="btn btn-blue" onclick="document.getElementById('qr-input').click()">📷 SCAN QR CODE</button>
-    <p class="hint">Opens your phone camera to scan</p>
+    <div id="reader"></div>
+    <button class="btn btn-blue" id="scan-btn" onclick="startScan()">📷 START SCANNER</button>
+    <button class="btn btn-gray" id="stop-btn" onclick="stopScan()" style="display:none">✕ STOP</button>
   </div>
 
-  <!-- CONFIRM VIEW -->
   <div id="view-confirm" style="display:none">
     <div id="status-msg" style="display:none"></div>
     <div class="card">
@@ -58,7 +57,7 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
       <div class="row"><span class="row-label">BATCH#</span><span class="row-val" id="c-batch"></span></div>
       <div class="row"><span class="row-label">LENGTH</span><span class="row-val" id="c-length"></span></div>
       <div class="row"><span class="row-label">CATEGORY</span><span class="row-val" id="c-cat"></span></div>
-      <div class="row"><span class="row-label">CURRENT LOCATION</span><span class="row-val" id="c-loc"></span></div>
+      <div class="row"><span class="row-label">LOCATION</span><span class="row-val" id="c-loc"></span></div>
       <div class="row"><span class="row-label">DATE</span><span class="row-val" id="c-date"></span></div>
     </div>
     <label class="fl">UPDATE LOCATION</label>
@@ -67,15 +66,14 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
     <button class="btn btn-green" onclick="confirmScan()" id="confirm-btn" style="margin-top:16px">✓ CONFIRM SCAN</button>
     <button class="btn btn-gray" onclick="resetScanner()">↩ SCAN ANOTHER</button>
   </div>
-
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script>
 var API="https://script.google.com/macros/s/AKfycbwYZakW1KVVaLHPCz-u21mG-HlXUpTtpKOS9LJjHIJpHmaAfWIjH1JUKdkpGBEF9GP4Ow/exec";
 var LOCS=["Aisle 1","Aisle 2","Aisle 3","Aisle 4","Aisle 5","Aisle 6","Aisle 7"];
 var selectedLoc="";
 var currentRoll=null;
+var html5QrCode=null;
 
 function buildLocGrid(){
   var grid=document.getElementById("loc-grid");
@@ -103,32 +101,32 @@ function selectLoc(loc){
   });
 }
 
-function handleImage(input){
-  if(!input.files||!input.files[0])return;
-  var file=input.files[0];
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var canvas=document.createElement("canvas");
-      var MAX=800;
-      var scale=Math.min(MAX/img.width,MAX/img.height,1);
-      canvas.width=img.width*scale;
-      canvas.height=img.height*scale;
-      var ctx=canvas.getContext("2d");
-      ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
-      var code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:"dontInvert"});
-      if(code){
-        processQR(code.data);
-      }else{
-        alert("QR not detected. Try again closer or with better lighting.");
-        input.value="";
-      }
-    };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
+function startScan(){
+  html5QrCode=new Html5Qrcode("reader");
+  html5QrCode.start(
+    {facingMode:"environment"},
+    {fps:15,qrbox:{width:250,height:250}},
+    function(decodedText){
+      stopScan();
+      processQR(decodedText);
+    },
+    function(err){}
+  ).then(function(){
+    document.getElementById("scan-btn").style.display="none";
+    document.getElementById("stop-btn").style.display="block";
+  }).catch(function(err){
+    alert("Camera error: "+err);
+  });
+}
+
+function stopScan(){
+  if(html5QrCode){
+    html5QrCode.stop().catch(function(){});
+    html5QrCode=null;
+  }
+  document.getElementById("scan-btn").style.display="block";
+  document.getElementById("stop-btn").style.display="none";
+  document.getElementById("reader").innerHTML="";
 }
 
 async function processQR(url){
@@ -140,11 +138,7 @@ async function processQR(url){
     var res=await fetch(API+"?t="+Date.now());
     var json=await res.json();
     var roll=json.data.find(function(r){return String(r.ID)===String(id);});
-    if(!roll){
-      alert("Roll not found in inventory");
-      document.getElementById("status-badge").textContent="";
-      return;
-    }
+    if(!roll){alert("Roll not found");document.getElementById("status-badge").textContent="";return;}
     currentRoll=roll;
     showConfirm(roll);
   }catch(e){
@@ -176,26 +170,20 @@ async function confirmScan(){
     await fetch(API+"?"+params.toString());
     showStatus("✓ Scan recorded","success");
     setTimeout(function(){resetScanner();},2000);
-  }catch(e){
-    showStatus("Error saving scan","error");
-  }
+  }catch(e){showStatus("Error saving","error");}
   btn.disabled=false;btn.textContent="✓ CONFIRM SCAN";
 }
 
 function showStatus(msg,type){
   var el=document.getElementById("status-msg");
-  el.textContent=msg;
-  el.className="status "+type;
-  el.style.display="block";
+  el.textContent=msg;el.className="status "+type;el.style.display="block";
 }
 
 function resetScanner(){
-  currentRoll=null;
-  selectedLoc="";
+  currentRoll=null;selectedLoc="";
   document.getElementById("view-scan").style.display="block";
   document.getElementById("view-confirm").style.display="none";
   document.getElementById("status-msg").style.display="none";
-  document.getElementById("qr-input").value="";
 }
 
 buildLocGrid();
