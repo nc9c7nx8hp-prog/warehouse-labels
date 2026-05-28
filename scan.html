@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Warehouse Scanner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;font-family:'Courier New',monospace;color:#f1f5f9;min-height:100vh}
+header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:15px;font-weight:700}
+.header-sub{font-size:9px;letter-spacing:3px;color:#64748b}
+.content{padding:20px 16px;max-width:500px;margin:0 auto;padding-bottom:80px}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:10px;font-family:'Courier New',monospace}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-blue{background:#3b82f6}.btn-green{background:#16a34a}.btn-gray{background:#334155}
+.scanner-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;margin-bottom:20px;background:#000}
+video{width:100%;display:block}
+.scan-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;border:3px solid #3b82f6;border-radius:8px}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:#3b82f6;animation:scan 2s linear infinite}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px}
+.card-title{font-size:10px;letter-spacing:2px;color:#64748b;margin-bottom:12px}
+.roll-mp{font-size:32px;font-weight:900;color:#f1f5f9;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #334155;font-size:13px}
+.row:last-child{border-bottom:none}
+.row-label{color:#64748b}
+.row-val{color:#f1f5f9;font-weight:700}
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.loc-btn{padding:10px 8px;border-radius:8px;border:2px solid #334155;background:#1e293b;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;font-family:'Courier New',monospace}
+label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bottom:8px;margin-top:16px}
+.status{font-size:11px;text-align:center;padding:8px;border-radius:8px;margin-bottom:12px}
+.status.success{background:#16a34a22;color:#16a34a}
+.status.error{background:#dc262622;color:#dc2626}
+.errmsg{color:#ef4444;font-size:11px;margin:4px 0 8px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="header-sub">WAREHOUSE</div>
+    <div class="header-title">Roll Scanner</div>
+  </div>
+  <div id="status-badge" style="font-size:10px;color:#64748b"></div>
+</header>
+
+<div class="content">
+
+  <!-- SCAN VIEW -->
+  <div id="view-scan">
+    <div class="scanner-wrap" id="scanner-wrap" style="display:none">
+      <video id="video" playsinline></video>
+      <div class="scan-overlay"><div class="scan-line"></div></div>
+    </div>
+    <button class="btn btn-blue" id="scan-btn" onclick="startScan()">📷 SCAN QR CODE</button>
+    <button class="btn btn-gray" id="stop-btn" onclick="stopScan()" style="display:none">✕ STOP SCANNING</button>
+    <p style="text-align:center;color:#475569;font-size:12px;margin-top:8px">Point camera at roll QR code</p>
+  </div>
+
+  <!-- CONFIRM VIEW -->
+  <div id="view-confirm" style="display:none">
+    <div id="status-msg" style="display:none"></div>
+
+    <div class="card">
+      <div class="card-title">SCANNED ROLL</div>
+      <div class="roll-mp" id="c-mp"></div>
+      <div class="row"><span class="row-label">BATCH#</span><span class="row-val" id="c-batch"></span></div>
+      <div class="row"><span class="row-label">LENGTH</span><span class="row-val" id="c-length"></span></div>
+      <div class="row"><span class="row-label">CATEGORY</span><span class="row-val" id="c-cat"></span></div>
+      <div class="row"><span class="row-label">CURRENT LOCATION</span><span class="row-val" id="c-loc"></span></div>
+      <div class="row"><span class="row-label">DATE</span><span class="row-val" id="c-date"></span></div>
+    </div>
+
+    <label class="fl">UPDATE LOCATION</label>
+    <div class="loc-grid" id="loc-grid"></div>
+    <div class="errmsg" id="e-loc" style="display:none">Select a location</div>
+
+    <button class="btn btn-green" onclick="confirmScan()" id="confirm-btn" style="margin-top:16px">✓ CONFIRM SCAN</button>
+    <button class="btn btn-gray" onclick="resetScanner()">↩ SCAN ANOTHER</button>
+  </div>
+
+</div>
+
+<script>
+var API="https://script.google.com/macros/s/AKfycbwYZakW1KVVaLHPCz-u21mG-HlXUpTtpKOS9LJjHIJpHmaAfWIjH1JUKdkpGBEF9GP4Ow/exec";
+var LOCS=["Aisle 1","Aisle 2","Aisle 3","Aisle 4","Aisle 5","Aisle 6","Aisle 7"];
+var selectedLoc="";
+var currentRoll=null;
+var scanning=false;
+var videoStream=null;
+var animFrame=null;
+
+function buildLocGrid(){
+  var grid=document.getElementById("loc-grid");
+  grid.innerHTML="";
+  LOCS.forEach(function(loc){
+    var btn=document.createElement("button");
+    btn.className="loc-btn";
+    btn.id="l_"+loc.replace(/\s/g,"_");
+    btn.textContent=loc;
+    btn.onclick=function(){selectLoc(loc);};
+    grid.appendChild(btn);
+  });
+}
+
+function selectLoc(loc){
+  selectedLoc=loc;
+  document.getElementById("e-loc").style.display="none";
+  LOCS.forEach(function(l){
+    var b=document.getElementById("l_"+l.replace(/\s/g,"_"));
+    if(!b)return;
+    var on=l===loc;
+    b.style.borderColor=on?"#3b82f6":"#334155";
+    b.style.background=on?"#3b82f622":"#1e293b";
+    b.style.color=on?"#3b82f6":"#64748b";
+  });
+}
+
+async function startScan(){
+  try{
+    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    var video=document.getElementById("video");
+    video.srcObject=videoStream;
+    video.play();
+    document.getElementById("scanner-wrap").style.display="block";
+    document.getElementById("scan-btn").style.display="none";
+    document.getElementById("stop-btn").style.display="block";
+    scanning=true;
+    scanFrame();
+  }catch(e){
+    alert("Camera access denied. Please allow camera access.");
+  }
+}
+
+function stopScan(){
+  scanning=false;
+  if(videoStream){videoStream.getTracks().forEach(function(t){t.stop();});}
+  if(animFrame){cancelAnimationFrame(animFrame);}
+  document.getElementById("scanner-wrap").style.display="none";
+  document.getElementById("scan-btn").style.display="block";
+  document.getElementById("stop-btn").style.display="none";
+}
+
+function scanFrame(){
+  if(!scanning)return;
+  var video=document.getElementById("video");
+  if(video.readyState===video.HAVE_ENOUGH_DATA){
+    var canvas=document.createElement("canvas");
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    var ctx=canvas.getContext("2d");
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    var code=jsQR(imageData.data,imageData.width,imageData.height);
+    if(code){
+      stopScan();
+      processQR(code.data);
+      return;
+    }
+  }
+  animFrame=requestAnimationFrame(scanFrame);
+}
+
+async function processQR(url){
+  document.getElementById("status-badge").textContent="LOADING...";
+  try{
+    // Extract ID from URL
+    var urlObj=new URL(url);
+    var id=urlObj.searchParams.get("id");
+    if(!id){
+      alert("Invalid QR code");
+      return;
+    }
+    // Fetch roll data
+    var res=await fetch(API+"?t="+Date.now());
+    var json=await res.json();
+    var roll=json.data.find(function(r){return String(r.ID)===String(id);});
+    if(!roll){
+      alert("Roll not found in inventory");
+      document.getElementById("status-badge").textContent="";
+      return;
+    }
+    currentRoll=roll;
+    showConfirm(roll);
+  }catch(e){
+    alert("Error loading roll data");
+    document.getElementById("status-badge").textContent="";
+  }
+}
+
+function showConfirm(roll){
+  document.getElementById("c-mp").textContent=roll.MP;
+  document.getElementById("c-batch").textContent=roll.BATCH;
+  document.getElementById("c-length").textContent=roll.LENGTH;
+  document.getElementById("c-cat").textContent=roll.CATEGORY;
+  document.getElementById("c-loc").textContent=roll.LOCATION||"Not assigned";
+  document.getElementById("c-date").textContent=roll.DATE;
+  document.getElementById("view-scan").style.display="none";
+  document.getElementById("view-confirm").style.display="block";
+  document.getElementById("status-badge").textContent="";
+  buildLocGrid();
+  // Pre-select current location
+  if(roll.LOCATION) selectLoc(roll.LOCATION);
+}
+
+async function confirmScan(){
+  if(!selectedLoc){
+    document.getElementById("e-loc").style.display="block";
+    return;
+  }
+  var btn=document.getElementById("confirm-btn");
+  btn.disabled=true;
+  btn.textContent="SAVING...";
+  try{
+    var params=new URLSearchParams({
+      action:"scan",
+      id:currentRoll.ID,
+      location:selectedLoc
+    });
+    await fetch(API+"?"+params.toString());
+    showStatus("✓ Scan recorded successfully","success");
+    setTimeout(function(){resetScanner();},2000);
+  }catch(e){
+    showStatus("Error saving scan","error");
+  }
+  btn.disabled=false;
+  btn.textContent="✓ CONFIRM SCAN";
+}
+
+function showStatus(msg,type){
+  var el=document.getElementById("status-msg");
+  el.textContent=msg;
+  el.className="status "+type;
+  el.style.display="block";
+}
+
+function resetScanner(){
+  currentRoll=null;
+  selectedLoc="";
+  document.getElementById("view-scan").style.display="block";
+  document.getElementById("view-confirm").style.display="none";
+  document.getElementById("status-msg").style.display="none";
+  document.getElementById("scan-btn").style.display="block";
+  document.getElementById("stop-btn").style.display="none";
+  document.getElementById("scanner-wrap").style.display="none";
+}
+
+buildLocGrid();
+</script>
+</body>
+</html>
