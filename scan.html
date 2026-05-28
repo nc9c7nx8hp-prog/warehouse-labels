@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Warehouse Scanner</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;font-family:'Courier New',monospace;color:#f1f5f9;min-height:100vh}
@@ -117,17 +117,23 @@ function selectLoc(loc){
   });
 }
 
+var codeReader=null;
+
 async function startScan(){
   try{
-    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-    var video=document.getElementById("video");
-    video.srcObject=videoStream;
-    video.play();
+    codeReader=new ZXing.BrowserQRCodeReader();
     document.getElementById("scanner-wrap").style.display="block";
     document.getElementById("scan-btn").style.display="none";
     document.getElementById("stop-btn").style.display="block";
     scanning=true;
-    scanFrame();
+    var videoInputDevices=await ZXing.BrowserQRCodeReader.listVideoInputDevices();
+    var selectedDeviceId=videoInputDevices[videoInputDevices.length-1].deviceId;
+    codeReader.decodeFromVideoDevice(selectedDeviceId,"video",function(result,err){
+      if(result){
+        stopScan();
+        processQR(result.getText());
+      }
+    });
   }catch(e){
     alert("Camera access denied. Please allow camera access.");
   }
@@ -135,31 +141,10 @@ async function startScan(){
 
 function stopScan(){
   scanning=false;
-  if(videoStream){videoStream.getTracks().forEach(function(t){t.stop();});}
-  if(animFrame){cancelAnimationFrame(animFrame);}
+  if(codeReader) codeReader.reset();
   document.getElementById("scanner-wrap").style.display="none";
   document.getElementById("scan-btn").style.display="block";
   document.getElementById("stop-btn").style.display="none";
-}
-
-function scanFrame(){
-  if(!scanning)return;
-  var video=document.getElementById("video");
-  if(video.readyState===video.HAVE_ENOUGH_DATA){
-    var canvas=document.createElement("canvas");
-    canvas.width=video.videoWidth;
-    canvas.height=video.videoHeight;
-    var ctx=canvas.getContext("2d");
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
-    var code=jsQR(imageData.data,imageData.width,imageData.height);
-    if(code){
-      stopScan();
-      processQR(code.data);
-      return;
-    }
-  }
-  animFrame=requestAnimationFrame(scanFrame);
 }
 
 async function processQR(url){
