@@ -111,16 +111,18 @@ function handleImage(input){
     var img=new Image();
     img.onload=function(){
       var canvas=document.createElement("canvas");
-      canvas.width=img.width;
-      canvas.height=img.height;
+      var MAX=800;
+      var scale=Math.min(MAX/img.width,MAX/img.height,1);
+      canvas.width=img.width*scale;
+      canvas.height=img.height*scale;
       var ctx=canvas.getContext("2d");
-      ctx.drawImage(img,0,0);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
       var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
-      var code=jsQR(imageData.data,imageData.width,imageData.height);
+      var code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:"dontInvert"});
       if(code){
         processQR(code.data);
       }else{
-        alert("QR not detected. Try again with better lighting or closer.");
+        alert("QR not detected. Try again closer or with better lighting.");
         input.value="";
       }
     };
