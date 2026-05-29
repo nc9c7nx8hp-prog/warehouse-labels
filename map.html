@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Warehouse Map</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;font-family:'Courier New',monospace;color:#f1f5f9;min-height:100vh}
@@ -12,12 +11,12 @@ header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 20px;disp
 .header-title{font-size:15px;font-weight:700}
 .header-sub{font-size:9px;letter-spacing:3px;color:#64748b}
 .content{padding:20px 16px;max-width:600px;margin:0 auto}
-.map-wrap{position:relative;background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:20px;aspect-ratio:4/3}
-svg{width:100%;height:100%}
-.zone{cursor:pointer;transition:opacity 0.2s}
-.zone:hover{opacity:0.8}
-.zone-label{font-size:11px;font-weight:700;fill:#fff;pointer-events:none;text-anchor:middle}
-.zone-count{font-size:14px;font-weight:900;fill:#fff;pointer-events:none;text-anchor:middle}
+.map-wrap{background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:20px}
+svg{width:100%;height:auto;display:block}
+.zone{cursor:pointer;opacity:0.85;transition:opacity 0.2s}
+.zone:hover{opacity:1}
+.zlabel{font-size:10px;font-weight:700;fill:#fff;pointer-events:none;text-anchor:middle;dominant-baseline:middle}
+.zcount{font-size:13px;font-weight:900;fill:#fff;pointer-events:none;text-anchor:middle;dominant-baseline:middle}
 .legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
 .legend-item{background:#1e293b;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer}
 .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
@@ -29,8 +28,7 @@ svg{width:100%;height:100%}
 .roll-item:last-child{border-bottom:none}
 .roll-mp{font-weight:800;font-size:14px}
 .roll-meta{color:#94a3b8;margin-top:2px}
-.btn{width:100%;padding:12px;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px;font-family:'Courier New',monospace}
-.btn-gray{background:#334155}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-top:12px;font-family:'Courier New',monospace;background:#334155}
 .loading{text-align:center;color:#475569;padding:20px;font-size:12px}
 </style>
 </head>
@@ -48,52 +46,54 @@ svg{width:100%;height:100%}
 
   <div id="map-container" style="display:none">
     <div class="map-wrap">
-      <svg id="map-svg" viewBox="0 0 400 300">
-        <!-- Zone 1 - Yellow - Bottom left -->
-        <rect id="z1" class="zone" x="20" y="180" width="120" height="100" rx="6" fill="#eab308" onclick="showZone('Zone 1')"/>
-        <text class="zone-label" x="80" y="220">ZONE 1</text>
-        <text class="zone-count" x="80" y="245" id="c1">0</text>
+      <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
 
-        <!-- Zone 2 - Gray - Center -->
-        <rect id="z2" class="zone" x="160" y="120" width="140" height="80" rx="6" fill="#64748b" onclick="showZone('Zone 2')"/>
-        <text class="zone-label" x="230" y="155">ZONE 2</text>
-        <text class="zone-count" x="230" y="175" id="c2">0</text>
+        <!-- Zone 6 - Green - Floor 6&7 - left side -->
+        <rect class="zone" x="10" y="10" width="80" height="200" rx="6" fill="#16a34a" onclick="showZone('Zone 6')"/>
+        <text class="zlabel" x="50" y="95">ZONE 6</text>
+        <text class="zcount" x="50" y="115" id="c6">0</text>
 
-        <!-- Zone 3 - Pink - Center right -->
-        <rect id="z3" class="zone" x="160" y="60" width="100" height="55" rx="6" fill="#f472b6" onclick="showZone('Zone 3')"/>
-        <text class="zone-label" x="210" y="85">ZONE 3</text>
-        <text class="zone-count" x="210" y="103" id="c3">0</text>
+        <!-- Zone 4 - Purple - W1-W16 - top center -->
+        <rect class="zone" x="100" y="10" width="190" height="60" rx="6" fill="#7c3aed" onclick="showZone('Zone 4')"/>
+        <text class="zlabel" x="195" y="35">ZONE 4</text>
+        <text class="zcount" x="195" y="52" id="c4">0</text>
 
-        <!-- Zone 4 - Light gray - Bottom center -->
-        <rect id="z4" class="zone" x="160" y="210" width="140" height="70" rx="6" fill="#94a3b8" onclick="showZone('Zone 4')"/>
-        <text class="zone-label" x="230" y="242">ZONE 4</text>
-        <text class="zone-count" x="230" y="262" id="c4">0</text>
+        <!-- Zone 5 - Blue - Floor 2 - top right -->
+        <rect class="zone" x="300" y="10" width="90" height="100" rx="6" fill="#0ea5e9" onclick="showZone('Zone 5')"/>
+        <text class="zlabel" x="345" y="55">ZONE 5</text>
+        <text class="zcount" x="345" y="72" id="c5">0</text>
 
-        <!-- Zone 5 - Blue - Top right -->
-        <rect id="z5" class="zone" x="270" y="10" width="120" height="70" rx="6" fill="#0ea5e9" onclick="showZone('Zone 5')"/>
-        <text class="zone-label" x="330" y="42">ZONE 5</text>
-        <text class="zone-count" x="330" y="62" id="c5">0</text>
+        <!-- Zone 3 - Pink - ST1 ST2 - center -->
+        <rect class="zone" x="100" y="80" width="100" height="70" rx="6" fill="#f472b6" onclick="showZone('Zone 3')"/>
+        <text class="zlabel" x="150" y="110">ZONE 3</text>
+        <text class="zcount" x="150" y="128" id="c3">0</text>
 
-        <!-- Zone 6 - Green - Top left -->
-        <rect id="z6" class="zone" x="20" y="10" width="130" height="160" rx="6" fill="#16a34a" onclick="showZone('Zone 6')"/>
-        <text class="zone-label" x="85" y="85">ZONE 6</text>
-        <text class="zone-count" x="85" y="105" id="c6">0</text>
+        <!-- Zone 2 - Gray - Floor 4 - center right -->
+        <rect class="zone" x="210" y="80" width="180" height="110" rx="6" fill="#64748b" onclick="showZone('Zone 2')"/>
+        <text class="zlabel" x="300" y="130">ZONE 2</text>
+        <text class="zcount" x="300" y="148" id="c2">0</text>
+
+        <!-- Zone 1 - Yellow - Slitting - bottom center -->
+        <rect class="zone" x="100" y="160" width="200" height="130" rx="6" fill="#eab308" onclick="showZone('Zone 1')"/>
+        <text class="zlabel" x="200" y="220">ZONE 1</text>
+        <text class="zcount" x="200" y="238" id="c1">0</text>
+
       </svg>
     </div>
 
     <div class="legend">
-      <div class="legend-item" onclick="showZone('Zone 1')"><div class="legend-dot" style="background:#eab308"></div><span class="legend-text">Zone 1</span><span class="legend-count" id="l1">0 rolls</span></div>
-      <div class="legend-item" onclick="showZone('Zone 2')"><div class="legend-dot" style="background:#64748b"></div><span class="legend-text">Zone 2</span><span class="legend-count" id="l2">0 rolls</span></div>
-      <div class="legend-item" onclick="showZone('Zone 3')"><div class="legend-dot" style="background:#f472b6"></div><span class="legend-text">Zone 3</span><span class="legend-count" id="l3">0 rolls</span></div>
-      <div class="legend-item" onclick="showZone('Zone 4')"><div class="legend-dot" style="background:#94a3b8"></div><span class="legend-text">Zone 4</span><span class="legend-count" id="l4">0 rolls</span></div>
-      <div class="legend-item" onclick="showZone('Zone 5')"><div class="legend-dot" style="background:#0ea5e9"></div><span class="legend-text">Zone 5</span><span class="legend-count" id="l5">0 rolls</span></div>
-      <div class="legend-item" onclick="showZone('Zone 6')"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">Zone 6</span><span class="legend-count" id="l6">0 rolls</span></div>
+      <div class="legend-item" onclick="showZone('Zone 1')"><div class="legend-dot" style="background:#eab308"></div><span class="legend-text">Zone 1 — Slitting</span><span class="legend-count" id="l1">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 2')"><div class="legend-dot" style="background:#64748b"></div><span class="legend-text">Zone 2 — Floor 4</span><span class="legend-count" id="l2">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 3')"><div class="legend-dot" style="background:#f472b6"></div><span class="legend-text">Zone 3 — ST1/ST2</span><span class="legend-count" id="l3">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 4')"><div class="legend-dot" style="background:#7c3aed"></div><span class="legend-text">Zone 4 — W1-W16</span><span class="legend-count" id="l4">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 5')"><div class="legend-dot" style="background:#0ea5e9"></div><span class="legend-text">Zone 5 — Floor 2</span><span class="legend-count" id="l5">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 6')"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">Zone 6 — Floor 6/7</span><span class="legend-count" id="l6">0</span></div>
     </div>
 
     <div class="panel" id="zone-panel">
       <div class="panel-title" id="panel-title">ZONE</div>
       <div id="panel-rolls"></div>
-      <button class="btn btn-gray" onclick="document.getElementById('zone-panel').style.display='none'" style="margin-top:12px">CLOSE</button>
+      <button class="btn" onclick="document.getElementById('zone-panel').style.display='none'">CLOSE</button>
     </div>
   </div>
 </div>
@@ -101,26 +101,27 @@ svg{width:100%;height:100%}
 <script>
 var API="https://script.google.com/macros/s/AKfycbyrccwCiKCcEiXVl5-OUTpuiakiqku1_4LRFwg3Mps_TQJPF4WT__nh2KOyEf9lQrZPsw/exec";
 
-// Zone center coordinates from warehouse
-var ZONES = {
-  "Zone 1": {lat:43.72266976, lng:-79.66347557, color:"#eab308"},
-  "Zone 2": {lat:43.72272089, lng:-79.66354701, color:"#64748b"},
-  "Zone 3": {lat:43.72268749, lng:-79.66355699, color:"#f472b6"},
-  "Zone 4": {lat:43.72255541, lng:-79.66357186, color:"#94a3b8"},
-  "Zone 5": {lat:43.72255385, lng:-79.66354707, color:"#0ea5e9"},
-  "Zone 6": {lat:43.72259618, lng:-79.66358923, color:"#16a34a"}
+var ZONE_COORDS = {
+  "Zone 1": {lat:43.72266976, lng:-79.66347557},
+  "Zone 2": {lat:43.72272089, lng:-79.66354701},
+  "Zone 3": {lat:43.72268749, lng:-79.66355699},
+  "Zone 4": {lat:43.72255541, lng:-79.66357186},
+  "Zone 5": {lat:43.72255385, lng:-79.66354707},
+  "Zone 6": {lat:43.72259618, lng:-79.66358923}
 };
 
-var rolls = [];
+var inventory = [];
+var scanned = [];
 
 function getZoneFromCoords(lat, lng) {
-  if (!lat || !lng || lat === "denied" || lat === "unavailable") return null;
-  var minDist = Infinity;
-  var nearest = null;
+  if (!lat || !lng || lat === "denied" || lat === "unavailable" || lat === "") return null;
   var latF = parseFloat(lat);
   var lngF = parseFloat(lng);
-  Object.keys(ZONES).forEach(function(zone) {
-    var z = ZONES[zone];
+  if (isNaN(latF) || isNaN(lngF)) return null;
+  var minDist = Infinity;
+  var nearest = null;
+  Object.keys(ZONE_COORDS).forEach(function(zone) {
+    var z = ZONE_COORDS[zone];
     var dist = Math.pow(latF - z.lat, 2) + Math.pow(lngF - z.lng, 2);
     if (dist < minDist) { minDist = dist; nearest = zone; }
   });
@@ -129,27 +130,47 @@ function getZoneFromCoords(lat, lng) {
 
 async function loadData() {
   try {
-    var res = await fetch(API + "?t=" + Date.now());
-    var json = await res.json();
-    rolls = json.data || [];
+    // Load inventory
+    var res1 = await fetch(API + "?t=" + Date.now());
+    var json1 = await res1.json();
+    inventory = json1.data || [];
+
+    // Load scanned data
+    var res2 = await fetch(API + "?action=scanned&t=" + Date.now());
+    var json2 = await res2.json();
+    scanned = json2.data || [];
+
     renderMap();
     document.getElementById("loading").style.display = "none";
     document.getElementById("map-container").style.display = "block";
-    document.getElementById("total").textContent = rolls.length + " rolls";
+    document.getElementById("total").textContent = inventory.length + " rolls";
   } catch(e) {
     document.getElementById("loading").textContent = "Error loading data";
   }
 }
 
+function getLatestZoneForRoll(id) {
+  // Find most recent scan for this roll
+  var rollScans = scanned.filter(function(s) { return String(s.ID) === String(id); });
+  if (!rollScans.length) return null;
+  // Sort by scan time descending
+  rollScans.sort(function(a, b) { return String(b.SCAN_TIME) > String(a.SCAN_TIME) ? 1 : -1; });
+  var latest = rollScans[0];
+  // Try coords first
+  var zone = getZoneFromCoords(latest.LAT, latest.LNG);
+  if (zone) return zone;
+  // Fall back to location field
+  return latest.LOCATION || null;
+}
+
 function renderMap() {
   var counts = {"Zone 1":0,"Zone 2":0,"Zone 3":0,"Zone 4":0,"Zone 5":0,"Zone 6":0};
-  
-  rolls.forEach(function(r) {
-    var zone = r.LOCATION;
-    // Also try to infer from coords if no location
-    if (!zone || zone === "Not assigned") {
-      zone = getZoneFromCoords(r.LAT, r.LNG);
-    }
+
+  inventory.forEach(function(r) {
+    // Try scanned coords first
+    var zone = getLatestZoneForRoll(r.ID);
+    // Fall back to LOCATION field in inventory
+    if (!zone) zone = r.LOCATION;
     if (zone && counts[zone] !== undefined) counts[zone]++;
   });
 
@@ -157,7 +178,7 @@ function renderMap() {
     var n = zone.replace("Zone ","");
     var el = document.getElementById("c"+n);
     var ll = document.getElementById("l"+n);
-    if (el) el.textContent = counts[zone] + " rolls";
+    if (el) el.textContent = counts[zone];
     if (ll) ll.textContent = counts[zone] + " rolls";
   });
 }
@@ -166,20 +187,20 @@ function showZone(zone) {
   var panel = document.getElementById("zone-panel");
   var title = document.getElementById("panel-title");
   var list  = document.getElementById("panel-rolls");
-  
+
   title.textContent = zone.toUpperCase();
-  
-  var zoneRolls = rolls.filter(function(r) {
-    return r.LOCATION === zone;
+
+  var zoneRolls = inventory.filter(function(r) {
+    var z = getLatestZoneForRoll(r.ID) || r.LOCATION;
+    return z === zone;
   });
 
   if (!zoneRolls.length) {
     list.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px 0">No rolls in this zone.</div>';
   } else {
     list.innerHTML = zoneRolls.map(function(r) {
-      var cat = r.CATEGORY || "";
       return '<div class="roll-item"><div class="roll-mp">' + r.MP + '</div>' +
-        '<div class="roll-meta">B#' + r.BATCH + ' &middot; ' + r.LENGTH + ' &middot; ' + cat + '</div></div>';
+        '<div class="roll-meta">B#' + r.BATCH + ' &middot; ' + r.LENGTH + ' &middot; ' + (r.CATEGORY||"") + '</div></div>';
     }).join("");
   }
   panel.style.display = "block";
