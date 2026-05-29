@@ -78,21 +78,17 @@ svg{width:100%;height:auto;display:block}
         <text class="zlabel" x="200" y="256">R12/13/14</text>
         <text class="zcount" x="200" y="274" id="c1">0</text>
 
-        <!-- Zone 6 - Gray - placeholder - bottom left -->
-        <rect class="zone" x="10" y="280" width="70" height="30" rx="6" fill="#64748b" onclick="showZone('Zone 6')"/>
-        <text class="zlabel" x="45" y="298">Z6</text>
-        <text class="zcount" x="45" y="0" id="c6">0</text>
+        <text class="zcount" x="0" y="0" id="c6" style="display:none">0</text>
 
       </svg>
     </div>
 
     <div class="legend">
-      <div class="legend-item" onclick="showZone('Zone 1')"><div class="legend-dot" style="background:#eab308"></div><span class="legend-text">Zone 1 — Slitting</span><span class="legend-count" id="l1">0</span></div>
-      <div class="legend-item" onclick="showZone('Zone 2')"><div class="legend-dot" style="background:#64748b"></div><span class="legend-text">Zone 2 — Floor 4</span><span class="legend-count" id="l2">0</span></div>
-      <div class="legend-item" onclick="showZone('Zone 3')"><div class="legend-dot" style="background:#f472b6"></div><span class="legend-text">Zone 3 — Quar/NS</span><span class="legend-count" id="l3">0</span></div>
       <div class="legend-item" onclick="showZone('Zone 4')"><div class="legend-dot" style="background:#7c3aed"></div><span class="legend-text">Zone 4 — W1-W16</span><span class="legend-count" id="l4">0</span></div>
-      <div class="legend-item" onclick="showZone('Zone 5')"><div class="legend-dot" style="background:#0ea5e9"></div><span class="legend-text">Zone 5 — Floor 2</span><span class="legend-count" id="l5">0</span></div>
-      <div class="legend-item" onclick="showZone('Zone 6')"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">Zone 6 — Floor 6/7</span><span class="legend-count" id="l6">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 5')"><div class="legend-dot" style="background:#0ea5e9"></div><span class="legend-text">Zone 5 — R9/10</span><span class="legend-count" id="l5">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 2')"><div class="legend-dot" style="background:#f472b6"></div><span class="legend-text">Zone 2 — ST1-ST2</span><span class="legend-count" id="l2">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 3')"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">Zone 3 — Quar/NS</span><span class="legend-count" id="l3">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 1')"><div class="legend-dot" style="background:#eab308"></div><span class="legend-text">Zone 1 — R12/13/14</span><span class="legend-count" id="l1">0</span></div>
     </div>
 
     <div class="panel" id="zone-panel">
@@ -169,7 +165,7 @@ function getLatestZoneForRoll(id) {
 }
 
 function renderMap() {
-  var counts = {"Zone 1":0,"Zone 2":0,"Zone 3":0,"Zone 4":0,"Zone 5":0,"Zone 6":0};
+  var counts = {"Zone 1":0,"Zone 2":0,"Zone 3":0,"Zone 4":0,"Zone 5":0};
 
   inventory.forEach(function(r) {
     // Try scanned coords first
