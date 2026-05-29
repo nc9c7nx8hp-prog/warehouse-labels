@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+body{font-family:monospace;background:#0f172a;color:#f1f5f9;padding:20px;margin:0;min-height:100vh}
+.st{margin-top:20px;padding:10px;border-radius:8px;background:#334155;text-align:center;font-size:13px}
+</style>
+</head>
+<body>
+<div style="color:#16a34a;font-size:11px;letter-spacing:2px">LOADING...</div>
+<div class="st" id="st">Please wait...</div>
+<script>
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrccwCiKCcEiXVl5-OUTpuiakiqku1_4LRFwg3Mps_TQJPF4WT__nh2KOyEf9lQrZPsw/exec";
+var params = new URLSearchParams(window.location.search);
+var id = params.get("id");
+if(id) {
+  window.location.href = SCRIPT_URL + "?scan=1&id=" + id;
+} else {
+  document.getElementById("st").textContent = "Invalid QR code";
+}
+</script>
+</body>
+</html>
