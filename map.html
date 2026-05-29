@@ -136,7 +136,7 @@ async function loadData() {
     inventory = json1.data || [];
 
     // Load scanned data
-    var res2 = await fetch(API + "?action=scanned&t=" + Date.now());
+    var res2 = await fetch("https://script.google.com/macros/s/AKfycbwboD1O1qxOpkBdEjSrJA5cgGx1Q0EVE8mjY6laSP-GNosjemU7a1WDITQ2OesLX1efyQ/exec?action=scanned&t=" + Date.now());
     var json2 = await res2.json();
     scanned = json2.data || [];
 
