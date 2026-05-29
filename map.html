@@ -46,37 +46,42 @@ svg{width:100%;height:auto;display:block}
 
   <div id="map-container" style="display:none">
     <div class="map-wrap">
-      <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
-
-        <!-- Zone 6 - Green - Floor 6&7 - left side -->
-        <rect class="zone" x="10" y="10" width="80" height="200" rx="6" fill="#16a34a" onclick="showZone('Zone 6')"/>
-        <text class="zlabel" x="50" y="95">ZONE 6</text>
-        <text class="zcount" x="50" y="115" id="c6">0</text>
+      <svg viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg">
 
         <!-- Zone 4 - Purple - W1-W16 - top center -->
-        <rect class="zone" x="100" y="10" width="190" height="60" rx="6" fill="#7c3aed" onclick="showZone('Zone 4')"/>
-        <text class="zlabel" x="195" y="35">ZONE 4</text>
-        <text class="zcount" x="195" y="52" id="c4">0</text>
+        <rect class="zone" x="80" y="10" width="240" height="80" rx="6" fill="#7c3aed" onclick="showZone('Zone 4')"/>
+        <text class="zlabel" x="200" y="42">ZONE 4</text>
+        <text class="zlabel" x="200" y="58">W1-W16</text>
+        <text class="zcount" x="200" y="76" id="c4">0</text>
 
-        <!-- Zone 5 - Blue - Floor 2 - top right -->
-        <rect class="zone" x="300" y="10" width="90" height="100" rx="6" fill="#0ea5e9" onclick="showZone('Zone 5')"/>
-        <text class="zlabel" x="345" y="55">ZONE 5</text>
-        <text class="zcount" x="345" y="72" id="c5">0</text>
+        <!-- Zone 5 - Blue - Racks 9/10 - left middle -->
+        <rect class="zone" x="10" y="100" width="70" height="170" rx="6" fill="#0ea5e9" onclick="showZone('Zone 5')"/>
+        <text class="zlabel" x="45" y="170">ZONE 5</text>
+        <text class="zlabel" x="45" y="186">R9/10</text>
+        <text class="zcount" x="45" y="204" id="c5">0</text>
 
-        <!-- Zone 3 - Pink - ST1 ST2 - center -->
-        <rect class="zone" x="100" y="80" width="100" height="70" rx="6" fill="#f472b6" onclick="showZone('Zone 3')"/>
-        <text class="zlabel" x="150" y="110">ZONE 3</text>
-        <text class="zcount" x="150" y="128" id="c3">0</text>
+        <!-- Zone 2 - Pink - ST1-ST2 - center middle -->
+        <rect class="zone" x="80" y="100" width="240" height="80" rx="6" fill="#f472b6" onclick="showZone('Zone 2')"/>
+        <text class="zlabel" x="200" y="132">ZONE 2</text>
+        <text class="zlabel" x="200" y="148">ST1-ST2</text>
+        <text class="zcount" x="200" y="166" id="c2">0</text>
 
-        <!-- Zone 2 - Gray - Floor 4 - center right -->
-        <rect class="zone" x="210" y="80" width="180" height="110" rx="6" fill="#64748b" onclick="showZone('Zone 2')"/>
-        <text class="zlabel" x="300" y="130">ZONE 2</text>
-        <text class="zcount" x="300" y="148" id="c2">0</text>
+        <!-- Zone 3 - Green - Qty N-S - right middle -->
+        <rect class="zone" x="320" y="100" width="70" height="170" rx="6" fill="#16a34a" onclick="showZone('Zone 3')"/>
+        <text class="zlabel" x="355" y="170">ZONE 3</text>
+        <text class="zlabel" x="355" y="186">Quar/NS</text>
+        <text class="zcount" x="355" y="204" id="c3">0</text>
 
-        <!-- Zone 1 - Yellow - Slitting - bottom center -->
-        <rect class="zone" x="100" y="160" width="200" height="130" rx="6" fill="#eab308" onclick="showZone('Zone 1')"/>
-        <text class="zlabel" x="200" y="220">ZONE 1</text>
-        <text class="zcount" x="200" y="238" id="c1">0</text>
+        <!-- Zone 1 - Yellow - Racks 12/13/14 - bottom center -->
+        <rect class="zone" x="80" y="190" width="240" height="120" rx="6" fill="#eab308" onclick="showZone('Zone 1')"/>
+        <text class="zlabel" x="200" y="240">ZONE 1</text>
+        <text class="zlabel" x="200" y="256">R12/13/14</text>
+        <text class="zcount" x="200" y="274" id="c1">0</text>
+
+        <!-- Zone 6 - Gray - placeholder - bottom left -->
+        <rect class="zone" x="10" y="280" width="70" height="30" rx="6" fill="#64748b" onclick="showZone('Zone 6')"/>
+        <text class="zlabel" x="45" y="298">Z6</text>
+        <text class="zcount" x="45" y="0" id="c6">0</text>
 
       </svg>
     </div>
@@ -84,7 +89,7 @@ svg{width:100%;height:auto;display:block}
     <div class="legend">
       <div class="legend-item" onclick="showZone('Zone 1')"><div class="legend-dot" style="background:#eab308"></div><span class="legend-text">Zone 1 — Slitting</span><span class="legend-count" id="l1">0</span></div>
       <div class="legend-item" onclick="showZone('Zone 2')"><div class="legend-dot" style="background:#64748b"></div><span class="legend-text">Zone 2 — Floor 4</span><span class="legend-count" id="l2">0</span></div>
-      <div class="legend-item" onclick="showZone('Zone 3')"><div class="legend-dot" style="background:#f472b6"></div><span class="legend-text">Zone 3 — ST1/ST2</span><span class="legend-count" id="l3">0</span></div>
+      <div class="legend-item" onclick="showZone('Zone 3')"><div class="legend-dot" style="background:#f472b6"></div><span class="legend-text">Zone 3 — Quar/NS</span><span class="legend-count" id="l3">0</span></div>
       <div class="legend-item" onclick="showZone('Zone 4')"><div class="legend-dot" style="background:#7c3aed"></div><span class="legend-text">Zone 4 — W1-W16</span><span class="legend-count" id="l4">0</span></div>
       <div class="legend-item" onclick="showZone('Zone 5')"><div class="legend-dot" style="background:#0ea5e9"></div><span class="legend-text">Zone 5 — Floor 2</span><span class="legend-count" id="l5">0</span></div>
       <div class="legend-item" onclick="showZone('Zone 6')"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">Zone 6 — Floor 6/7</span><span class="legend-count" id="l6">0</span></div>
