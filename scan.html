@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Warehouse Scanner</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;font-family:'Courier New',monospace;color:#f1f5f9;min-height:100vh}
@@ -15,8 +15,6 @@ header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 20px;disp
 .btn{width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:10px;font-family:'Courier New',monospace}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
 .btn-blue{background:#3b82f6}.btn-green{background:#16a34a}.btn-gray{background:#334155}
-#reader{width:100%;border-radius:12px;overflow:hidden;margin-bottom:16px}
-#reader img{display:none}
 .card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px}
 .card-title{font-size:10px;letter-spacing:2px;color:#64748b;margin-bottom:12px}
 .roll-mp{font-size:32px;font-weight:900;color:#f1f5f9;margin-bottom:8px}
@@ -31,6 +29,8 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
 .status.success{background:#16a34a22;color:#16a34a}
 .status.error{background:#dc262622;color:#dc2626}
 .errmsg{color:#ef4444;font-size:11px;margin:4px 0 8px}
+.hint{text-align:center;color:#475569;font-size:12px;margin-top:8px;line-height:1.6}
+.processing{text-align:center;color:#f59e0b;font-size:12px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -44,9 +44,10 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
 
 <div class="content">
   <div id="view-scan">
-    <div id="reader"></div>
-    <button class="btn btn-blue" id="scan-btn" onclick="startScan()">📷 START SCANNER</button>
-    <button class="btn btn-gray" id="stop-btn" onclick="stopScan()" style="display:none">✕ STOP</button>
+    <input type="file" id="qr-input" accept="image/*" capture="environment" style="display:none" onchange="handleImage(this)"/>
+    <button class="btn btn-blue" onclick="document.getElementById('qr-input').click()">📷 SCAN QR CODE</button>
+    <p class="hint">Tap to open camera → point at QR → take photo</p>
+    <p class="processing" id="processing" style="display:none">Processing...</p>
   </div>
 
   <div id="view-confirm" style="display:none">
@@ -69,11 +70,10 @@ label.fl{color:#94a3b8;font-size:10px;letter-spacing:2px;display:block;margin-bo
 </div>
 
 <script>
-var API="https://script.google.com/macros/s/AKfycbwYZakW1KVVaLHPCz-u21mG-HlXUpTtpKOS9LJjHIJpHmaAfWIjH1JUKdkpGBEF9GP4Ow/exec";
+var API="https://script.google.com/macros/s/AKfycbzUcycv3WVtcHiNNNj6mKJHDMoAUaUg_CAAQJdJWY-0oTmUbBDcTGOkmUvLbDcOEp-SPA/exec";
 var LOCS=["Aisle 1","Aisle 2","Aisle 3","Aisle 4","Aisle 5","Aisle 6","Aisle 7"];
 var selectedLoc="";
 var currentRoll=null;
-var html5QrCode=null;
 
 function buildLocGrid(){
   var grid=document.getElementById("loc-grid");
@@ -101,32 +101,18 @@ function selectLoc(loc){
   });
 }
 
-function startScan(){
-  html5QrCode=new Html5Qrcode("reader");
-  html5QrCode.start(
-    {facingMode:"environment"},
-    {fps:15,qrbox:{width:250,height:250}},
-    function(decodedText){
-      stopScan();
-      processQR(decodedText);
-    },
-    function(err){}
-  ).then(function(){
-    document.getElementById("scan-btn").style.display="none";
-    document.getElementById("stop-btn").style.display="block";
-  }).catch(function(err){
-    alert("Camera error: "+err);
-  });
-}
-
-function stopScan(){
-  if(html5QrCode){
-    html5QrCode.stop().catch(function(){});
-    html5QrCode=null;
+async function handleImage(input){
+  if(!input.files||!input.files[0])return;
+  document.getElementById("processing").style.display="block";
+  try{
+    var result=await QrScanner.scanImage(input.files[0],{returnDetailedScanResult:true});
+    document.getElementById("processing").style.display="none";
+    processQR(result.data);
+  }catch(e){
+    document.getElementById("processing").style.display="none";
+    alert("QR not detected. Try again — make sure QR fills the frame.");
+    input.value="";
   }
-  document.getElementById("scan-btn").style.display="block";
-  document.getElementById("stop-btn").style.display="none";
-  document.getElementById("reader").innerHTML="";
 }
 
 async function processQR(url){
@@ -184,6 +170,7 @@ function resetScanner(){
   document.getElementById("view-scan").style.display="block";
   document.getElementById("view-confirm").style.display="none";
   document.getElementById("status-msg").style.display="none";
+  document.getElementById("qr-input").value="";
 }
 
 buildLocGrid();
