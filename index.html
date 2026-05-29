@@ -253,7 +253,7 @@ function exportExcel(){
   if(!rolls.length)return;
   var wb=XLSX.utils.book_new();
   var data=rolls.map(function(r){
-    var scanUrl=API+"?scan=1&id="+r.ID;
+    var scanUrl="https://nc9c7nx8hp-prog.github.io/warehouse-labels/s.html?id="+r.ID;
     var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(scanUrl);
     return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"LOCATION":r.LOCATION||"","DATE":r.DATE,"QR_URL":qr};
   });
