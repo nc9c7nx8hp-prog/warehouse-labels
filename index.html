@@ -35,6 +35,8 @@ input:focus{border-color:#3b82f6}
 .empty{text-align:center;color:#475569;padding:40px 0;font-size:13px}
 .errmsg{color:#ef4444;font-size:11px;margin:4px 0 8px}
 .info-box{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:16px;font-size:11px;color:#94a3b8;line-height:1.6}
+.gps-box{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin:8px 0 4px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:8px}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:#334155;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -65,9 +67,14 @@ input:focus{border-color:#3b82f6}
   <label class="fl">CATEGORY</label>
   <div class="cat-grid" id="cat-grid"></div>
   <div class="errmsg" id="e-cat" style="display:none">Select a category</div>
-  <label class="fl">LOCATION</label>
-  <div class="cat-grid" id="loc-grid"></div>
-  <div class="errmsg" id="e-loc" style="display:none">Select a location</div>
+  <label class="fl">GPS ZONE (auto)</label>
+  <div class="gps-box" id="gps-box">
+    <div class="gps-dot" id="gps-dot"></div>
+    <span id="gps-label">Getting location...</span>
+  </div>
+  <label class="fl">MANUAL ZONE (confirm or correct)</label>
+  <div class="cat-grid" id="zone-grid"></div>
+  <div class="errmsg" id="e-zone" style="display:none">Select a zone</div>
   <button class="btn btn-blue" onclick="addRoll()" id="add-btn" style="margin-top:16px">+ ADD ROLL</button>
 </div>
 <div class="content" id="view-list" style="display:none">
@@ -79,7 +86,8 @@ input:focus{border-color:#3b82f6}
   </div>
 </div>
 <script>
-var API="https://script.google.com/macros/s/AKfycbxDwd2BPgpnARB59qZk15jKgpjhYwlqeKAD48hWlqzj5qtWDMvvUkftfV2ABLJ20_mapw/exec";
+var API="https://script.google.com/macros/s/AKfycbwboD1O1qxOpkBdEjSrJA5cgGx1Q0EVE8mjY6laSP-GNosjemU7a1WDITQ2OesLX1efyQ/exec";
+
 var CATS=[
   {label:"Frequent Use",color:"#16a34a"},
   {label:"Infrequent Use",color:"#eab308"},
@@ -88,12 +96,75 @@ var CATS=[
   {label:"China Material",color:"#0ea5e9"},
   {label:"Trials",color:"#dc2626"}
 ];
-var LOCS=["Aisle 1","Aisle 2","Aisle 3","Aisle 4","Aisle 5","Aisle 6","Aisle 7"];
+
+var ZONES=[
+  {label:"Zone 1",color:"#eab308"},
+  {label:"Zone 2",color:"#f472b6"},
+  {label:"Zone 3",color:"#16a34a"},
+  {label:"Zone 4",color:"#7c3aed"},
+  {label:"Zone 5",color:"#0ea5e9"}
+];
+
+var ZONE_COORDS={
+  "Zone 1":{lat:43.72268463,lng:-79.66358795},
+  "Zone 2":{lat:43.72259009,lng:-79.66358033},
+  "Zone 3":{lat:43.72257285,lng:-79.66357032},
+  "Zone 4":{lat:43.72256937,lng:-79.66357012},
+  "Zone 5":{lat:43.72265858,lng:-79.66361969}
+};
+
 var TODAY=new Date().toISOString().split("T")[0];
 var rolls=[];
 var selectedCat="";
-var selectedLoc="";
+var selectedZone="";
+var currentLat="";
+var currentLng="";
 var busy=false;
+
+// Device ID
+function getDeviceId(){
+  var d=localStorage.getItem("wh_did");
+  if(!d){d="DEV-"+Math.random().toString(36).substr(2,9).toUpperCase();localStorage.setItem("wh_did",d);}
+  return d;
+}
+
+// GPS Zone detection
+function getZoneFromCoords(lat,lng){
+  var latF=parseFloat(lat);
+  var lngF=parseFloat(lng);
+  if(isNaN(latF)||isNaN(lngF))return null;
+  var minDist=Infinity;
+  var nearest=null;
+  Object.keys(ZONE_COORDS).forEach(function(zone){
+    var z=ZONE_COORDS[zone];
+    var dist=Math.pow(latF-z.lat,2)+Math.pow(lngF-z.lng,2);
+    if(dist<minDist){minDist=dist;nearest=zone;}
+  });
+  return nearest;
+}
+
+// Start GPS on load
+function startGPS(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        currentLat=pos.coords.latitude;
+        currentLng=pos.coords.longitude;
+        var zone=getZoneFromCoords(currentLat,currentLng);
+        document.getElementById("gps-dot").style.background="#16a34a";
+        document.getElementById("gps-label").textContent=zone||"Unknown";
+        document.getElementById("gps-label").style.color="#16a34a";
+        if(zone) selectZone(zone);
+      },
+      function(){
+        document.getElementById("gps-dot").style.background="#ef4444";
+        document.getElementById("gps-label").textContent="GPS unavailable — select manually";
+        document.getElementById("gps-label").style.color="#ef4444";
+      },
+      {timeout:8000,enableHighAccuracy:true}
+    );
+  }
+}
 
 function setStatus(msg,color){
   var el=document.getElementById("status");
@@ -135,14 +206,14 @@ function buildCatGrid(){
   });
 }
 
-function buildLocGrid(){
-  var grid=document.getElementById("loc-grid");
-  LOCS.forEach(function(loc){
+function buildZoneGrid(){
+  var grid=document.getElementById("zone-grid");
+  ZONES.forEach(function(zone){
     var btn=document.createElement("button");
     btn.className="cat-btn";
-    btn.id="l_"+loc.replace(/\s/g,"_");
-    btn.innerHTML=loc;
-    btn.onclick=function(){selectLoc(loc);};
+    btn.id="z_"+zone.label.replace(/\s/g,"_");
+    btn.innerHTML='<span class="cat-dot" style="background:'+zone.color+'"></span>'+zone.label.toUpperCase();
+    btn.onclick=function(){selectZone(zone.label);};
     grid.appendChild(btn);
   });
 }
@@ -160,16 +231,16 @@ function selectCat(label){
   });
 }
 
-function selectLoc(loc){
-  selectedLoc=loc;
-  document.getElementById("e-loc").style.display="none";
-  LOCS.forEach(function(l){
-    var b=document.getElementById("l_"+l.replace(/\s/g,"_"));
+function selectZone(label){
+  selectedZone=label;
+  document.getElementById("e-zone").style.display="none";
+  ZONES.forEach(function(zone){
+    var b=document.getElementById("z_"+zone.label.replace(/\s/g,"_"));
     if(!b)return;
-    var on=l===loc;
-    b.style.borderColor=on?"#3b82f6":"#334155";
-    b.style.background=on?"#3b82f622":"#1e293b";
-    b.style.color=on?"#3b82f6":"#64748b";
+    var on=zone.label===label;
+    b.style.borderColor=on?zone.color:"#334155";
+    b.style.background=on?zone.color+"22":"#1e293b";
+    b.style.color=on?zone.color:"#64748b";
   });
 }
 
@@ -187,30 +258,39 @@ async function addRoll(){
   if(!batch){document.getElementById("f-batch").classList.add("err");document.getElementById("e-batch").style.display="block";ok=false;}
   if(!length){document.getElementById("f-length").classList.add("err");document.getElementById("e-length").style.display="block";ok=false;}
   if(!selectedCat){document.getElementById("e-cat").style.display="block";ok=false;}
-  if(!selectedLoc){document.getElementById("e-loc").style.display="block";ok=false;}
+  if(!selectedZone){document.getElementById("e-zone").style.display="block";ok=false;}
   if(!ok||busy)return;
   busy=true;
   var btn=document.getElementById("add-btn");
   btn.disabled=true;btn.textContent="SAVING...";
   setStatus("SAVING...","#f59e0b");
   try{
-    await postData({action:"add",id:Date.now().toString(),mp:mp,batch:batch,length:length,category:selectedCat,date:TODAY,location:selectedLoc});
+    await postData({
+      action:"add",
+      id:Date.now().toString(),
+      mp:mp,batch:batch,length:length,
+      category:selectedCat,date:TODAY,
+      manualzone:selectedZone,
+      lat:currentLat,lng:currentLng,
+      device:getDeviceId()
+    });
     document.getElementById("f-mp").value="";
     document.getElementById("f-batch").value="";
     document.getElementById("f-length").value="";
-    selectedCat="";
-    selectedLoc="";
+    selectedCat="";selectedZone="";
     CATS.forEach(function(cat){
       var b=document.getElementById("c_"+cat.label.replace(/\s/g,"_"));
       if(b){b.style.borderColor="#334155";b.style.background="#1e293b";b.style.color="#64748b";}
     });
-    LOCS.forEach(function(l){
-      var b=document.getElementById("l_"+l.replace(/\s/g,"_"));
+    ZONES.forEach(function(zone){
+      var b=document.getElementById("z_"+zone.label.replace(/\s/g,"_"));
       if(b){b.style.borderColor="#334155";b.style.background="#1e293b";b.style.color="#64748b";}
     });
     setStatus("SAVED","#16a34a");
     setTimeout(function(){setStatus("","");},2000);
     document.getElementById("f-mp").focus();
+    // Refresh GPS for next entry
+    startGPS();
     await syncRolls();
   }catch(e){setStatus("ERROR - check connection","#dc2626");}
   btn.disabled=false;btn.textContent="+ ADD ROLL";
@@ -244,8 +324,8 @@ function renderList(){
   actions.style.display="block";
   container.innerHTML=rolls.map(function(r){
     var cat=CATS.find(function(c){return c.label===r.CATEGORY;})||CATS[0];
-    var loc=r.LOCATION?" &middot; "+r.LOCATION:"";
-    return '<div class="roll-card" style="border-left-color:'+cat.color+'"><div><div class="roll-mp">'+r.MP+'</div><div class="roll-meta">B#'+r.BATCH+' &middot; '+r.LENGTH+' &middot; '+r.DATE+loc+'</div><span class="roll-badge" style="background:'+cat.color+'22;color:'+cat.color+'">'+r.CATEGORY.toUpperCase()+'</span></div><button class="del-btn" onclick="deleteRoll(\''+r.ID+'\')">&#x2715;</button></div>';
+    var zone=r.MANUAL_ZONE||r.LOCATION||"";
+    return '<div class="roll-card" style="border-left-color:'+cat.color+'"><div><div class="roll-mp">'+r.MP+'</div><div class="roll-meta">B#'+r.BATCH+' &middot; '+r.LENGTH+' &middot; '+r.DATE+(zone?' &middot; '+zone:'')+'</div><span class="roll-badge" style="background:'+cat.color+'22;color:'+cat.color+'">'+r.CATEGORY.toUpperCase()+'</span></div><button class="del-btn" onclick="deleteRoll(\''+r.ID+'\')">&#x2715;</button></div>';
   }).join("");
 }
 
@@ -253,12 +333,12 @@ function exportExcel(){
   if(!rolls.length)return;
   var wb=XLSX.utils.book_new();
   var data=rolls.map(function(r){
-    var scanUrl="https://nc9c7nx8hp-prog.github.io/warehouse-labels/s.html?id="+r.ID;
+    var scanUrl=API+"?scan=1&id="+r.ID;
     var qr="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(scanUrl);
-    return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"LOCATION":r.LOCATION||"","DATE":r.DATE,"QR_URL":qr};
+    return{"MP#":r.MP,"BATCH#":r.BATCH,"LENGTH":r.LENGTH,"CATEGORY":r.CATEGORY,"MANUAL_ZONE":r.MANUAL_ZONE||"","GPS_ZONE":r.GPS_ZONE||"","DATE":r.DATE,"QR_URL":qr};
   });
   var ws=XLSX.utils.json_to_sheet(data);
-  ws["!cols"]=[{wch:20},{wch:20},{wch:14},{wch:20},{wch:14},{wch:14},{wch:80}];
+  ws["!cols"]=[{wch:20},{wch:20},{wch:14},{wch:20},{wch:14},{wch:14},{wch:14},{wch:80}];
   XLSX.utils.book_append_sheet(wb,ws,"Inventory");
   XLSX.writeFile(wb,"warehouse_"+TODAY+".xlsx");
 }
@@ -279,7 +359,8 @@ function switchTab(tab){
 }
 
 buildCatGrid();
-buildLocGrid();
+buildZoneGrid();
+startGPS();
 syncRolls();
 setInterval(syncRolls,20000);
 </script>
