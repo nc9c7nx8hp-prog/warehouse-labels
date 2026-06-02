@@ -100,7 +100,7 @@ svg{width:100%;height:auto;display:block}
 </div>
 
 <script>
-var API="https://script.google.com/macros/s/AKfycbyrccwCiKCcEiXVl5-OUTpuiakiqku1_4LRFwg3Mps_TQJPF4WT__nh2KOyEf9lQrZPsw/exec";
+var API="https://script.google.com/macros/s/AKfycbwboD1O1qxOpkBdEjSrJA5cgGx1Q0EVE8mjY6laSP-GNosjemU7a1WDITQ2OesLX1efyQ/exec";
 
 var ZONE_COORDS = {
   "Zone 1": {lat:43.72268463, lng:-79.66358795},
@@ -167,10 +167,7 @@ function renderMap() {
   var counts = {"Zone 1":0,"Zone 2":0,"Zone 3":0,"Zone 4":0,"Zone 5":0};
 
   inventory.forEach(function(r) {
-    // Try scanned coords first
-    var zone = getLatestZoneForRoll(r.ID);
-    // Fall back to LOCATION field in inventory
-    if (!zone) zone = r.LOCATION;
+    var zone = r.MANUAL_ZONE || getLatestZoneForRoll(r.ID) || r.LOCATION;
     if (zone && counts[zone] !== undefined) counts[zone]++;
   });
 
